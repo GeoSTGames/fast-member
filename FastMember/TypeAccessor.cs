@@ -282,7 +282,7 @@ namespace FastMember
                 }
             }
         }
-        private static bool IsFullyPublic(Type type, PropertyInfo[] props, bool allowNonPublicAccessors)
+        private static bool IsFullyPublic(Type type, PropertyInfo[] props, FieldInfo[] fields, bool allowNonPublicAccessors)
         {
             while (type.IsNestedPublic) type = type.DeclaringType;
             if (!type.IsPublic) return false;
@@ -295,7 +295,10 @@ namespace FastMember
                     if (props[i].GetSetMethod(true) != null && props[i].GetSetMethod(false) == null) return false; // non-public setter
                 }
             }
-
+            for (int i = 0; i < fields.Length; i++)
+            {
+                if (!fields[i].IsPublic) return false;
+            }
             return true;
         }
         static TypeAccessor CreateNew(Type type, bool allowNonPublicAccessors)
@@ -305,8 +308,11 @@ namespace FastMember
                 return DynamicAccessor.Singleton;
             }
 
-            PropertyInfo[] props = type.GetTypeAndInterfaceProperties(BindingFlags.Public | BindingFlags.Instance);
-            FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+            if (allowNonPublicAccessors)
+                flags |= BindingFlags.NonPublic;
+            PropertyInfo[] props = type.GetTypeAndInterfaceProperties(flags);
+            FieldInfo[] fields = type.GetFields(flags);
             Dictionary<string, int> map = new Dictionary<string, int>();
             List<MemberInfo> members = new List<MemberInfo>(props.Length + fields.Length);
             int i = 0;
@@ -326,7 +332,7 @@ namespace FastMember
                 ctor = type.GetConstructor(Type.EmptyTypes);
             }
             ILGenerator il;
-            if (!IsFullyPublic(type, props, allowNonPublicAccessors))
+            if (!IsFullyPublic(type, props, fields, allowNonPublicAccessors))
             {
                 DynamicMethod dynGetter = new DynamicMethod(type.FullName + "_get", typeof(object), new Type[] { typeof(int), typeof(object) }, type, true),
                               dynSetter = new DynamicMethod(type.FullName + "_set", null, new Type[] { typeof(int), typeof(object), typeof(object) }, type, true);

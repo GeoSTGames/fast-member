@@ -13,7 +13,7 @@ namespace FastMember
         Member[] members;
         internal MemberSet(Type type)
         {
-            const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance;
+            const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
             members = type.GetTypeAndInterfaceProperties(PublicInstance).Cast<MemberInfo>().Concat(type.GetFields(PublicInstance).Cast<MemberInfo>()).OrderBy(x => x.Name)
                 .Select(member => new Member(member)).ToArray();
         }
@@ -96,6 +96,15 @@ namespace FastMember
             {
                 if(member is FieldInfo) return ((FieldInfo)member).FieldType;
                 if (member is PropertyInfo) return ((PropertyInfo)member).PropertyType;
+                throw new NotSupportedException(member.GetType().Name);
+            }
+        }
+
+        public bool IsPublic 
+        {
+            get {
+                if(member is FieldInfo) return ((FieldInfo)member).IsPublic;
+                if (member is PropertyInfo) return ((PropertyInfo)member).GetSetMethod().IsPublic;
                 throw new NotSupportedException(member.GetType().Name);
             }
         }
