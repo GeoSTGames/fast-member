@@ -59,10 +59,11 @@ namespace FastMember
     /// </summary>
     public sealed class Member
     {
-        private readonly MemberInfo member;
+        public MemberInfo Info { get; }
+        
         internal Member(MemberInfo member)
         {
-            this.member = member;
+            this.Info = member;
         }
         /// <summary>
         /// The ordinal of this member among other members.
@@ -72,7 +73,7 @@ namespace FastMember
         {
             get
             {
-                var ordinalAttr = member.CustomAttributes.FirstOrDefault(p => p.AttributeType == typeof(OrdinalAttribute));
+                var ordinalAttr = Info.CustomAttributes.FirstOrDefault(p => p.AttributeType == typeof(OrdinalAttribute));
 
                 if (ordinalAttr == null)
                 {
@@ -86,7 +87,7 @@ namespace FastMember
         /// <summary>
         /// The name of this member
         /// </summary>
-        public string Name { get { return member.Name; } }
+        public string Name { get { return Info.Name; } }
         /// <summary>
         /// The type of value stored in this member
         /// </summary>
@@ -94,20 +95,24 @@ namespace FastMember
         {
             get
             {
-                if(member is FieldInfo) return ((FieldInfo)member).FieldType;
-                if (member is PropertyInfo) return ((PropertyInfo)member).PropertyType;
-                throw new NotSupportedException(member.GetType().Name);
+                if(Info is FieldInfo) return ((FieldInfo)Info).FieldType;
+                if (Info is PropertyInfo) return ((PropertyInfo)Info).PropertyType;
+                throw new NotSupportedException(Info.GetType().Name);
             }
         }
 
         public bool IsPublic 
         {
             get {
-                if(member is FieldInfo) return ((FieldInfo)member).IsPublic;
-                if (member is PropertyInfo) return ((PropertyInfo)member).GetSetMethod().IsPublic;
-                throw new NotSupportedException(member.GetType().Name);
+                if(Info is FieldInfo) return ((FieldInfo)Info).IsPublic;
+                if (Info is PropertyInfo) return ((PropertyInfo)Info).GetSetMethod().IsPublic;
+                throw new NotSupportedException(Info.GetType().Name);
             }
         }
+
+        public bool IsField => Info is FieldInfo;
+
+        public bool IsProperty => Info is PropertyInfo;
 
         /// <summary>
         /// Is the attribute specified defined on this type
@@ -115,14 +120,14 @@ namespace FastMember
         public bool IsDefined(Type attributeType)
         {
             if (attributeType == null) throw new ArgumentNullException(nameof(attributeType));
-            return Attribute.IsDefined(member, attributeType);
+            return Attribute.IsDefined(Info, attributeType);
         }
 
         /// <summary>
         /// Getting Attribute Type
         /// </summary>
         public Attribute GetAttribute(Type attributeType, bool inherit)
-            => Attribute.GetCustomAttribute(member, attributeType, inherit);
+            => Attribute.GetCustomAttribute(Info, attributeType, inherit);
 
 		/// <summary>
 		/// Property Can Write
@@ -131,10 +136,10 @@ namespace FastMember
         {
             get
             {
-                switch (member.MemberType)
+                switch (Info.MemberType)
                 {
-                    case MemberTypes.Property: return ((PropertyInfo)member).CanWrite;
-                    default: throw new NotSupportedException(member.MemberType.ToString());
+                    case MemberTypes.Property: return ((PropertyInfo)Info).CanWrite;
+                    default: throw new NotSupportedException(Info.MemberType.ToString());
                 }
             }
         }
@@ -146,10 +151,10 @@ namespace FastMember
         {
             get
             {
-                switch (member.MemberType)
+                switch (Info.MemberType)
                 {
-                    case MemberTypes.Property: return ((PropertyInfo)member).CanRead;
-                    default: throw new NotSupportedException(member.MemberType.ToString());
+                    case MemberTypes.Property: return ((PropertyInfo)Info).CanRead;
+                    default: throw new NotSupportedException(Info.MemberType.ToString());
                 }
             }
         }
