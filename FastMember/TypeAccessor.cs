@@ -222,7 +222,7 @@ namespace FastMember
         /// <summary>
         /// A TypeAccessor based on a Type implementation, with available member metadata
         /// </summary>
-        protected abstract class RuntimeTypeAccessor : TypeAccessor
+        public abstract class RuntimeTypeAccessor : TypeAccessor
         {
             /// <summary>
             /// Returns the Type represented by this accessor
@@ -242,7 +242,7 @@ namespace FastMember
                 return members ?? (members = new MemberSet(Type));
             }
         }
-        sealed class DelegateAccessor : RuntimeTypeAccessor
+        public sealed class DelegateAccessor : RuntimeTypeAccessor
         {
             private readonly Dictionary<string, int> map;
             private readonly Func<int, object, object> getter;
@@ -280,6 +280,20 @@ namespace FastMember
                     if (map.TryGetValue(name, out index)) setter(index, target, value);
                     else throw new ArgumentOutOfRangeException("name");
                 }
+            }
+
+            public object Get(object target, int index)
+                => getter(index, target);
+
+            public void Set(object target, int index, object value)
+                => setter(index, target, value);
+
+            public int? GetIndex(string name)
+            {
+                if (map.TryGetValue(name, out int index)) {
+                    return index;
+                }
+                return null;
             }
         }
         private static bool IsFullyPublic(Type type, PropertyInfo[] props, FieldInfo[] fields, bool allowNonPublicAccessors)
