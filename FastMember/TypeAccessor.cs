@@ -35,6 +35,8 @@ namespace FastMember
         /// </summary>
         public virtual MemberSet GetMembers() { throw new NotSupportedException(); }
 
+        public List<Member> Members { get; set; }
+
         /// <summary>
         /// Provides a type-specific accessor, allowing by-name access for all objects of that type
         /// </summary>
@@ -329,6 +331,7 @@ namespace FastMember
             FieldInfo[] fields = type.GetFields(flags);
             Dictionary<string, int> map = new Dictionary<string, int>();
             List<MemberInfo> members = new List<MemberInfo>(props.Length + fields.Length);
+            List<Member> mems = new List<Member>();
             int i = 0;
             foreach (var prop in props)
             {
@@ -339,6 +342,10 @@ namespace FastMember
                 }
             }
             foreach (var field in fields) if (!map.ContainsKey(field.Name)) { map.Add(field.Name, i++); members.Add(field); }
+
+            foreach(MemberInfo mem in members) {
+                mems.Add(new Member(mem));
+            }
 
             ConstructorInfo ctor = null;
             if (type.IsClass && !type.IsAbstract)
@@ -360,11 +367,15 @@ namespace FastMember
                     il.Emit(OpCodes.Newobj, ctor);
                     il.Emit(OpCodes.Ret);
                 }
-                return new DelegateAccessor(
+
+                DelegateAccessor a = new DelegateAccessor(
                     map,
                     (Func<int, object, object>)dynGetter.CreateDelegate(typeof(Func<int, object, object>)),
                     (Action<int, object, object>)dynSetter.CreateDelegate(typeof(Action<int, object, object>)),
                     dynCtor == null ? null : (Func<object>)dynCtor.CreateDelegate(typeof(Func<object>)), type);
+
+                a.Members = mems;
+                return a;
             }
 
             // note this region is synchronized; only one is being created at a time so we don't need to stress about the builders
@@ -427,6 +438,7 @@ namespace FastMember
             tb.DefineMethodOverride(body, baseMethod);
 
             var accessor = (TypeAccessor)Activator.CreateInstance(tb.CreateTypeInfo().AsType(), map);
+            accessor.Members = mems;
             return accessor;
         }
 
